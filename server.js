@@ -1,8 +1,8 @@
 require('isomorphic-fetch');
-const dotenv = require('dotenv');
 const Koa = require('koa');
 const next = require('next');
 const { default: createShopifyAuth } = require('@shopify/koa-shopify-auth');
+const dotenv = require('dotenv');
 const { verifyRequest } = require('@shopify/koa-shopify-auth');
 const session = require('koa-session');
 
@@ -14,12 +14,12 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 
 const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY } = process.env;
-//Add the createShopifyAuth and verifyRequest middleware:
-//The createShopifyAuth functions take the Shopify API key and the Shopify API secret key from your .env file, and trigger the authentication screen. The function provides you the afterAuth, where you can use your own logic or redirect. The verifyRequest redirects users to the OAuth route if they haven’t been authenticated.
+
 app.prepare().then(() => {
     const server = new Koa();
-    server.use(session({ secure: true, sameSite: 'none' }, server));
+    server.use(session({ sameSite: 'none', secure: true }, server));
     server.keys = [SHOPIFY_API_SECRET_KEY];
+
     server.use(
         createShopifyAuth({
             apiKey: SHOPIFY_API_KEY,
@@ -27,19 +27,21 @@ app.prepare().then(() => {
             scopes: ['read_products'],
             afterAuth(ctx) {
                 const { shop, accessToken } = ctx.session;
+
                 ctx.redirect('/');
             },
         }),
     );
+
     server.use(verifyRequest());
     server.use(async (ctx) => {
         await handle(ctx.req, ctx.res);
         ctx.respond = false;
         ctx.res.statusCode = 200;
-        return
+
     });
+
     server.listen(port, () => {
         console.log(`> Ready on http://localhost:${port}`);
     });
 });
-
